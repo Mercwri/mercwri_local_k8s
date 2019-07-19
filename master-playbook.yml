@@ -43,6 +43,9 @@
       name: vagrant
       group: docker
 
+  - name: Disable system swap
+    shell: "swapoff -a"
+
   - name: Remove swapfile from /etc/fstab
     mount:
       name: "{{ item }}"
@@ -52,9 +55,14 @@
       - swap
       - none
 
-  - name: Disable swap
-    command: swapoff -a
-    when: ansible_swaptotal_mb > 0
+  - name: Disable swappiness and pass bridged IPv4 traffic to iptable's chains
+    sysctl:
+      name: "{{ item.name }}"
+      value: "{{ item.value }}"
+      state: present
+    with_items:
+      - { name: 'vm.swappiness', value: '0' }
+      - { name: 'net.bridge.bridge-nf-call-iptables', value: '1' }
   
   - name: Add an apt signing key for Kubernetes
     apt_key:
@@ -91,7 +99,7 @@
       state: restarted
   
   - name: Initialize the Kubernetes cluster using kubeadm
-    command: kubeadm init --apiserver-advertise-address="192.168.205.10" --apiserver-cert-extra-sans="192.168.205.10"  --pod-network-cidr="192.168.0.0/16"  --node-name k8s-master
+    command: kubeadm init --apiserver-advertise-address="192.168.205.10" --pod-network-cidr="10.244.0.0/16"
   
   - name: Setup kubeconfig for vagrant user
     command: "{{ item }}"
