@@ -108,7 +108,6 @@
      - cp -i /etc/kubernetes/admin.conf /home/vagrant/.kube/config
      - chown vagrant:vagrant /home/vagrant/.kube/config
 
-
   - name: Generate join command
     command: kubeadm token create --print-join-command
     register: join_command
@@ -116,10 +115,17 @@
   - name: Copy join command to local file
     local_action: copy content="{{ join_command.stdout_lines[0] }}" dest="./join-command"
 
-
   - name: Flannel
     become: false
-    command: kubectl apply -f https://github.com/anilcumulus/vagrant-k8s-flannel/blob/master/kube-flannel.yml
+    command: kubectl apply -f /vagrant/mercwri-flannel.yml
+
+  - name: Install k8s Dashboard
+    become: false
+    command: kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-beta1/aio/deploy/recommended.yaml
+
+  - name: Add dashboard user
+    become: false
+    command: kubectl appy -f /vagrant/admin-user.yaml
 
   handlers:
   - name: docker status
